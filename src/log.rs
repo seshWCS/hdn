@@ -3,12 +3,13 @@ use chrono::Utc;
 use std::net::IpAddr;
 
 #[derive(Debug)]
-pub enum Log<'a> {
-    RequestType(&'a Request),
+pub enum Log {
+    RequestType(Request),
     ConnectionEstablished,
+    ConnectionLost,
 }
 
-impl<'a> Log<'a> {
+impl Log {
     pub fn print(&self, ip: IpAddr, size: usize) {
         print!(
             "{}, [{}] ",
@@ -29,6 +30,9 @@ impl<'a> Log<'a> {
             }
             Log::ConnectionEstablished => {
                 print!("Connection established. ");
+            }
+            Log::ConnectionLost => {
+                print!("Connection lost. ");
             }
         }
         print!("Storage size: {}\n", size);

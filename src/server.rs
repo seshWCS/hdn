@@ -1,7 +1,7 @@
 use crate::info::{read_request, write_response, Request, Response};
 use crate::log::Log;
 use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
+use std::io::{Error, ErrorKind, Write};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex};
 
@@ -10,21 +10,29 @@ pub fn run(ip: IpAddr, port: u16) {
     let listener = TcpListener::bind(addr).unwrap();
     let storage = HashMap::<String, String>::new();
     let storage_ref = Arc::new(Mutex::new(storage));
+    let mut for_join = Vec::new();
     for user in listener.incoming() {
-        let mut user = user.unwrap();
+        let mut user = match user {
+            Ok(_) => user.unwrap(),
+            Err(_) => {
+                continue;
+            }
+        };
         let ref_clone = Arc::clone(&storage_ref);
-        let est = Log::ConnectionEstablished;
-        est.print(
+        let mut log_clone = Arc::new(Mutex::new(Log::ConnectionEstablished));
+        log_clone.lock().unwrap().print(
             user.local_addr().unwrap().ip(),
             ref_clone.lock().unwrap().len(),
         );
-        std::thread::spawn(move || loop {
+        let welcome = "Welcome to Hash Delivery Network by sesh\n";
+        user.write_all((&welcome).as_ref()).unwrap();
+        for_join.push(std::thread::spawn(move || loop {
             let req: Result<Request, Error> = read_request(&mut user);
             match req {
                 Ok(Request::Load { key }) => {
                     let req = Request::Load { key: key.clone() };
-                    let log = Log::RequestType(&req);
-                    log.print(
+                    log_clone = Arc::new(Mutex::from(Log::RequestType(req)));
+                    log_clone.lock().unwrap().print(
                         user.local_addr().unwrap().ip(),
                         ref_clone.lock().unwrap().len(),
                     );
@@ -47,28 +55,38 @@ pub fn run(ip: IpAddr, port: u16) {
                         key: key.clone(),
                         hash: hash.clone(),
                     };
-                    let log = Log::RequestType(&req);
-                    log.print(
+                    log_clone = Arc::new(Mutex::from(Log::RequestType(req)));
+                    ref_clone.lock().unwrap().insert(key.clone(), hash.clone());
+                    log_clone.lock().unwrap().print(
                         user.local_addr().unwrap().ip(),
                         ref_clone.lock().unwrap().len(),
                     );
                     let response = Response::ResponseStatus {
                         response_status: String::from("success"),
                     };
-                    ref_clone.lock().unwrap().insert(key.clone(), hash.clone());
-                    write_response(&response, &mut user).unwrap();
+                    match write_response(&response, &mut user) {
+                        Ok(_) => {}
+                        Err(_) => {
+                            continue;
+                        }
+                    }
                 }
                 Err(error) => {
                     if error.kind() == ErrorKind::Other {
                         continue;
                     } else {
-                        println!("Error");
+                        log_clone = Arc::new(Mutex::from(Log::ConnectionLost));
+                        log_clone.lock().unwrap().print(
+                            user.local_addr().unwrap().ip(),
+                            ref_clone.lock().unwrap().len(),
+                        );
                         break;
                     }
                 }
             }
-        })
-        .join()
-        .expect("Deadlock");
+        }));
+    }
+    for i in for_join {
+        i.join();
     }
 }
