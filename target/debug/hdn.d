@@ -1,1 +1,0 @@
-/Users/aleksandrnam/CLionProjects/hdn/target/debug/hdn: /Users/aleksandrnam/CLionProjects/hdn/src/info.rs /Users/aleksandrnam/CLionProjects/hdn/src/log.rs /Users/aleksandrnam/CLionProjects/hdn/src/main.rs /Users/aleksandrnam/CLionProjects/hdn/src/server.rs
