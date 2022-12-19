@@ -1,6 +1,6 @@
 use std::io::{BufRead, BufReader, Error, ErrorKind, Write};
 use std::net::TcpStream;
-// use json::JsonValue::String;
+use json::JsonValue;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -38,25 +38,25 @@ pub fn read_request(stream: &mut TcpStream) -> Result<Request, Error> {
 }
 
 pub fn write_response(response: &Response, stream: &mut TcpStream) -> Result<(), Error> {
-    // let buf = serde_json::to_vec(response)?;
-    // stream.write_all(&buf)?;
-    // Ok(())
     match response {
         Response::ResponseStatus { response_status } => {
-            let out = String::from("response_status: \"") + response_status + "\"\n";
-            stream.write_all(out.as_ref())?;
+            let mut out = JsonValue::new_array();
+            out["response_status"] = JsonValue::String(response_status.to_string());
+            stream.write_all(out.to_string().as_ref())?;
+            stream.write("\n".as_ref())?;
         }
         Response::Details {
             response_status,
             requested_key,
             requested_hash,
         } => {
-            let mut out = String::from("response_status: \"") + response_status + "\"\n";
-            out = out + "requested_key: \"" + requested_key + "\"\n";
-            out = out + "requested_hash: \"" + requested_hash + "\"\n";
-            stream.write_all(out.as_ref())?;
+            let mut out = JsonValue::new_array();
+            out["response_status"] = JsonValue::String(response_status.to_string());
+            out["requested_key"] = JsonValue::String(requested_key.to_string());
+            out["requested_hash"] = JsonValue::String(requested_hash.to_string());
+            stream.write_all(out.to_string().as_ref())?;
+            stream.write("\n".as_ref())?;
         }
     }
     Ok(())
-    // unimplemented!();
 }
