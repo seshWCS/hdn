@@ -72,16 +72,12 @@ pub fn run(ip: IpAddr, port: u16) {
                     }
                 }
                 Err(error) => {
-                    if error.kind() == ErrorKind::Other {
-                        continue;
-                    } else {
-                        log_clone = Arc::new(Mutex::from(Log::ConnectionLost));
-                        log_clone.lock().unwrap().print(
-                            user.local_addr().unwrap().ip(),
-                            ref_clone.lock().unwrap().len(),
-                        );
-                        break;
-                    }
+                    log_clone = Arc::new(Mutex::from(Log::ConnectionLost));
+                    log_clone.lock().unwrap().print(
+                        user.local_addr().unwrap().ip(),
+                        ref_clone.lock().unwrap().len(),
+                    );
+                    break;
                 }
             }
         }));
