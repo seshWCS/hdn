@@ -1,3 +1,3 @@
 # Hash Delivery Network
 
-This is simple network to load and store information
+This is a simple network to load and store information
